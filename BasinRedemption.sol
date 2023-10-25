@@ -20,6 +20,7 @@ contract BasinRedemption {
     address public treasury = 0x23014067c5bAb5f89d3f97727C06AFBffB4867c8;
     uint256 public supply;
     uint256 public daiToRedeem = supply * redemptionPrice;
+    uint256 public excess = (DAI.balanceOf(address(this)) - daiToRedeem);
 
 
     constructor(uint256 _supply) {
@@ -32,13 +33,21 @@ contract BasinRedemption {
         _;
     }
 
+    modifier onlyAdmin(uint256 _id) {
+        require(msg.sender == admin[_id], "caller is not admin");
+    }
+
     function redeem(uint256 _amount) external {
         BASIN.transferFrom(msg.sender, treasury, _amount);
         DAI.transfer(msg.sender, (_amount * redemptionPrice));
     }
 
-    function skim() external {
-        
+    function skim(uint256 _id) external onlyAdmin {
+        require(!adminSkim[_id], "already claimed");
+
+        DAI.transfer(admin[_id], excess / 2 - 1);
+
+        adminSkim[_id] = true;
     }
 
     function recover(address _token, uint256 _amount) external onlyOwner {
